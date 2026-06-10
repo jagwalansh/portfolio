@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import PointerCat from './components/PointerCat'
+import { CustomCursor } from './components/CustomCursor'
+import { Magnetic } from './components/Magnetic'
 
 const projects = [
   {
@@ -65,53 +67,50 @@ const pageNavItems = [
 function Navbar({ isVisible }: { isVisible: boolean }) {
   return (
     <header
-      className={`pixel-navbar absolute inset-x-0 top-0 z-20 border-b border-[#171411]/10 bg-[var(--hero-bg)] transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${isVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-4 opacity-0'}`}
+      className={`pixel-navbar absolute inset-x-0 top-0 z-20 border-b border-[#171411]/10 bg-(--hero-bg) transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${isVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-4 opacity-0'}`}
       style={{
         opacity: 'var(--hero-opacity)',
         filter: 'blur(var(--hero-blur))',
       }}
     >
       <div className="pixel-navbar-inner mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-16">
-        <a href="#" className="pixel-brand text-sm font-bold uppercase tracking-tight text-[#171411]">
-          JA
-        </a>
-        <a
-          href="mailto:hello@example.com"
-          className="pixel-button border border-[#171411]/70 px-4 py-2 text-sm font-semibold transition hover:bg-[#171411] hover:text-[#f6f1e8]"
-        >
-          Book a call
-        </a>
+        <Magnetic>
+          <a href="#" className="pixel-brand text-sm font-bold uppercase tracking-tight text-[#171411]" data-cursor="Home">
+            JA
+          </a>
+        </Magnetic>
+        <Magnetic>
+          <a
+            href="mailto:hello@example.com"
+            className="pixel-button border border-[#171411]/70 px-4 py-2 text-sm font-semibold transition hover:bg-[#171411] hover:text-[#f6f1e8]"
+            data-cursor="Book"
+          >
+            Book a call
+          </a>
+        </Magnetic>
       </div>
     </header>
   )
 }
 
 function PageRail({ activeSection }: { activeSection: string }) {
-  const activeIndex = pageNavItems.findIndex((item) => item.id === activeSection)
-  const railItemHeight = 3.15
-  const railGap = 0.26
-  const highlightOffset = activeIndex >= 0 ? activeIndex * (railItemHeight + railGap) : 0
-
   return (
-    <nav
-      className="page-rail"
-      aria-label="Current page section"
-      style={{ '--rail-offset': `${highlightOffset}rem` } as React.CSSProperties}
-    >
-      <span className="page-rail-highlight" aria-hidden="true" />
+    <nav className="page-rail" aria-label="Current page section">
       {pageNavItems.map((item) => {
         const isActive = activeSection === item.id
 
         return (
-          <a
-            aria-current={isActive ? 'page' : undefined}
-            className={`page-rail-link ${isActive ? 'page-rail-link-active' : ''}`}
-            href={`#${item.id}`}
-            key={item.id}
-          >
-            <span className="page-rail-dot" aria-hidden="true" />
-            <span>{item.label}</span>
-          </a>
+          <Magnetic key={item.id} className="w-full flex justify-center">
+            <a
+              aria-current={isActive ? 'page' : undefined}
+              className={`page-rail-link ${isActive ? 'page-rail-link-active' : ''}`}
+              href={`#${item.id}`}
+              data-cursor={item.label}
+            >
+              <span className="page-rail-dot" aria-hidden="true" />
+              <span>{item.label}</span>
+            </a>
+          </Magnetic>
         )
       })}
     </nav>
@@ -225,9 +224,10 @@ function App() {
 
   return (
     <main className="min-h-screen bg-white text-[#171411]">
+      <CustomCursor />
       <PageRail activeSection={activeSection} />
       <div className="site-frame" ref={pageRef}>
-        <section id="home" className="pixel-hero min-h-screen overflow-hidden bg-[var(--hero-bg)]">
+        <section id="home" className="pixel-hero min-h-screen overflow-hidden bg-(--hero-bg)">
           <Navbar isVisible={isContentVisible} />
 
           <div
@@ -249,13 +249,15 @@ function App() {
                 <p className="text-sm font-semibold text-[#5e574d]">42+ teams trust the work</p>
               </div> */}
 
-              <h1 className="hero-intro text-[#ebe7d5]">
+              <h1 className="hero-intro text-[#171411]">
                 Hey, I am{' '}
                 <span
                   id="hero-name"
                   className="hero-name relative inline-block"
                 >
-                  <PointerCat />
+                  <Magnetic className="pointer-cat-container" data-cursor-hide-ring="true">
+                    <PointerCat />
+                  </Magnetic>
                   <span className="hero-name-text">Ansh Jagwal</span>
                 </span>
                 .
@@ -324,6 +326,7 @@ function App() {
                   <article
                     className="reveal-item grid gap-5 py-8 transition hover:bg-[#f6f1e8] md:grid-cols-[0.18fr_1fr_0.6fr]"
                     data-reveal
+                    data-cursor="View"
                     key={project.title}
                   >
                     <p className="text-sm text-[#6f675c]">{project.year}</p>
@@ -351,7 +354,7 @@ function App() {
             </div>
             <div className="grid content-start gap-4 sm:grid-cols-2">
               {services.map((service) => (
-                <div className="reveal-item border border-[#d7cfc1] bg-[#fffaf1] p-6" data-reveal key={service}>
+                <div className="reveal-item border border-[#d7cfc1] bg-[#fffaf1] p-6" data-reveal data-cursor="Service" key={service}>
                   <p className="text-xl font-semibold">{service}</p>
                 </div>
               ))}
@@ -377,18 +380,24 @@ function App() {
                 </h2>
               </div>
               <div className="flex flex-col justify-end gap-4 sm:flex-row lg:flex-col">
-                <a
-                  href="mailto:hello@example.com"
-                  className="rounded-full bg-[#f6f1e8] px-6 py-3 text-center text-sm font-semibold text-[#171411] transition hover:bg-white"
-                >
-                  hello@example.com
-                </a>
-                <a
-                  href="https://www.linkedin.com"
-                  className="rounded-full border border-white/25 px-6 py-3 text-center text-sm font-semibold transition hover:border-white"
-                >
-                  LinkedIn
-                </a>
+                <Magnetic>
+                  <a
+                    href="mailto:hello@example.com"
+                    className="rounded-full bg-[#f6f1e8] px-6 py-3 text-center text-sm font-semibold text-[#171411] transition hover:bg-white"
+                    data-cursor="Mail"
+                  >
+                    hello@example.com
+                  </a>
+                </Magnetic>
+                <Magnetic>
+                  <a
+                    href="https://www.linkedin.com"
+                    className="rounded-full border border-white/25 px-6 py-3 text-center text-sm font-semibold transition hover:border-white"
+                    data-cursor="LinkedIn"
+                  >
+                    LinkedIn
+                  </a>
+                </Magnetic>
               </div>
             </div>
           </footer>
