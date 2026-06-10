@@ -1,12 +1,5 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Center, Environment, useGLTF } from '@react-three/drei'
-import type { Group, Mesh, MeshStandardMaterial } from 'three'
-
-const INITIAL_HAND_ROTATION: [number, number, number] = [2.3, 1.0, 7.0]
-const INITIAL_HAND_SCALE = 17.2
-const INITIAL_HAND_LANDING: [number, number] = [0.12, 0.14]
-const CONTENT_REVEAL_DELAY_MS = 2300
+import { useEffect, useRef, useState } from 'react'
+import PointerCat from './components/PointerCat'
 
 const projects = [
   {
@@ -38,6 +31,17 @@ const services = [
   'React frontends',
 ]
 
+const HERO_SUBTITLE =
+  'I build modern, responsive, and interactive web applications with a focus on clean design and great user experiences.'
+
+const pageNavItems = [
+  { id: 'home', label: 'Home' },
+  { id: 'about', label: 'About' },
+  { id: 'work', label: 'Work' },
+  { id: 'services', label: 'Services' },
+  { id: 'contact', label: 'Contact' },
+]
+
 // const heroSteps = [
 //   {
 //     step: '01',
@@ -57,167 +61,20 @@ const services = [
 //   },
 // ]
 
-declare global {
-  interface Window {
-    hand?: Group
-    setHandRotation?: (x: number, y: number, z: number) => void
-    setHandScale?: (scale: number) => void
-    setHandLanding?: (x: number, y: number) => void
-  }
-}
-
-function HeroHandModel() {
-  const groupRef = useRef<Group>(null)
-  const elapsedRef = useRef(0)
-  const hoverAmountRef = useRef(0)
-  const isHoveredRef = useRef(false)
-  const baseRotationRef = useRef<[number, number, number]>(INITIAL_HAND_ROTATION)
-  const landingRef = useRef<[number, number]>(INITIAL_HAND_LANDING)
-  const baseScaleRef = useRef(INITIAL_HAND_SCALE)
-  const { scene } = useGLTF('/model/hand.glb')
-
-  useEffect(() => {
-    scene.traverse((child) => {
-      const mesh = child as Mesh
-
-      if (!mesh.isMesh) return
-
-      const blueSkin = mesh.material as MeshStandardMaterial
-      blueSkin.color.set('#3f7df4')
-      blueSkin.roughness = 0.62
-      blueSkin.metalness = 0.04
-    })
-  }, [scene])
-
-  useEffect(() => {
-    window.hand = groupRef.current ?? undefined
-    window.setHandRotation = (x: number, y: number, z: number) => {
-      baseRotationRef.current = [x, y, z]
-      groupRef.current?.rotation.set(x, y, z)
-    }
-    window.setHandScale = (scale: number) => {
-      baseScaleRef.current = scale
-      groupRef.current?.scale.setScalar(scale)
-    }
-    window.setHandLanding = (x: number, y: number) => {
-      landingRef.current = [x, y]
-    }
-
-    return () => {
-      delete window.hand
-      delete window.setHandRotation
-      delete window.setHandScale
-      delete window.setHandLanding
-      document.body.style.cursor = ''
-    }
-  }, [])
-
-  useFrame(({ viewport, pointer }, delta) => {
-    if (!groupRef.current) return
-
-    elapsedRef.current += delta
-    hoverAmountRef.current +=
-      ((isHoveredRef.current ? 1 : 0) - hoverAmountRef.current) * Math.min(delta * 8, 1)
-
-    const duration = 2.15
-    const progress = Math.min(elapsedRef.current / duration, 1)
-    const eased =
-      progress < 0.5
-        ? 4 * progress * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2
-
-    const startX = -viewport.width * 0.68
-    const startY = viewport.height * 0.56
-    const [landingX, landingY] = landingRef.current
-    const endX = viewport.width * landingX
-    const endY = viewport.height * landingY
-    const idleFloat = progress === 1 ? Math.sin(elapsedRef.current * 0.75) * 0.06 : 0
-    const hoverAmount = hoverAmountRef.current
-    const hoverX = pointer.x * viewport.width * 0.035 * hoverAmount
-    const hoverY = pointer.y * viewport.height * 0.025 * hoverAmount
-    const hoverFloat = Math.sin(elapsedRef.current * 3.2) * 0.08 * hoverAmount
-
-    groupRef.current.position.set(
-      startX + (endX - startX) * eased + hoverX,
-      startY + (endY - startY) * eased + idleFloat + hoverY + hoverFloat,
-      0,
-    )
-    const [baseX, baseY, baseZ] = baseRotationRef.current
-    groupRef.current.rotation.x = baseX - Math.sin(progress * Math.PI) * 0.08 + pointer.y * 0.08 * hoverAmount
-    groupRef.current.rotation.y = baseY + Math.sin(elapsedRef.current * 0.42) * 0.035 + pointer.x * 0.1 * hoverAmount
-    groupRef.current.rotation.z = baseZ + Math.sin(elapsedRef.current * 0.55) * 0.035 + pointer.x * 0.06 * hoverAmount
-    groupRef.current.scale.setScalar(baseScaleRef.current + hoverAmount * 0.55)
-  })
-
-  return (
-    <>
-      <ambientLight intensity={1.15} />
-      <directionalLight position={[1.5, 3.5, 4]} intensity={2.2} />
-      <directionalLight position={[-3, 1, 2]} intensity={0.7} color="#dce8ff" />
-      <Environment preset="studio" />
-      <group
-        ref={groupRef}
-        rotation={INITIAL_HAND_ROTATION}
-        scale={INITIAL_HAND_SCALE}
-        onPointerOver={(event) => {
-          event.stopPropagation()
-          isHoveredRef.current = true
-          document.body.style.cursor = 'grab'
-        }}
-        onPointerOut={() => {
-          isHoveredRef.current = false
-          document.body.style.cursor = ''
-        }}
-      >
-        <Center>
-          <primitive object={scene} />
-        </Center>
-      </group>
-    </>
-  )
-}
-
-useGLTF.preload('/model/hand.glb')
-
-function BlueHand({ hasLanded }: { hasLanded: boolean }) {
-  return (
-    <div className={`hand-stage ${hasLanded ? 'hand-stage-landed' : ''}`} aria-hidden="true">
-      <Canvas orthographic camera={{ position: [0, 0, 10], zoom: 34 }}>
-        <Suspense fallback={null}>
-          <HeroHandModel />
-        </Suspense>
-      </Canvas>
-    </div>
-  )
-}
 
 function Navbar({ isVisible }: { isVisible: boolean }) {
   return (
     <header
-      className={`absolute inset-x-0 top-0 z-20 px-4 py-4 transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] sm:px-6 lg:px-8 ${isVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-4 opacity-0'
+      className={`pixel-navbar absolute inset-x-0 top-0 z-20 border-b border-[#171411]/10 bg-[var(--hero-bg)] transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${isVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-4 opacity-0'
         }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between border border-[#171411]/10 bg-[#fffaf1]/72 px-4 py-3 shadow-2xl shadow-[#171411]/8 backdrop-blur-2xl sm:px-5">
-        <a href="#" className="text-sm font-bold uppercase tracking-tight text-[#171411]">
+      <div className="pixel-navbar-inner mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-16">
+        <a href="#" className="pixel-brand text-sm font-bold uppercase tracking-tight text-[#171411]">
           JA
         </a>
-        <nav className="hidden items-center gap-8 text-sm font-semibold text-[#5e574d] md:flex">
-          <a className="transition hover:text-[#171411]" href="#about">
-            About
-          </a>
-          <a className="transition hover:text-[#171411]" href="#work">
-            Work
-          </a>
-          <a className="transition hover:text-[#171411]" href="#services">
-            Services
-          </a>
-          <a className="transition hover:text-[#171411]" href="#contact">
-            Contact
-          </a>
-        </nav>
         <a
           href="mailto:hello@example.com"
-          className="rounded-full border border-[#171411]/70 px-4 py-2 text-sm font-semibold transition hover:bg-[#171411] hover:text-[#f6f1e8]"
+          className="pixel-button border border-[#171411]/70 px-4 py-2 text-sm font-semibold transition hover:bg-[#171411] hover:text-[#f6f1e8]"
         >
           Book a call
         </a>
@@ -226,15 +83,127 @@ function Navbar({ isVisible }: { isVisible: boolean }) {
   )
 }
 
+function PageRail({ activeSection }: { activeSection: string }) {
+  return (
+    <nav className="page-rail" aria-label="Current page section">
+      {pageNavItems.map((item) => {
+        const isActive = activeSection === item.id
+
+        return (
+          <a
+            aria-current={isActive ? 'page' : undefined}
+            className={`page-rail-link ${isActive ? 'page-rail-link-active' : ''}`}
+            href={`#${item.id}`}
+            key={item.id}
+          >
+            <span className="page-rail-dot" aria-hidden="true" />
+            <span>{item.label}</span>
+          </a>
+        )
+      })}
+    </nav>
+  )
+}
+
 function App() {
-  const [isContentVisible, setIsContentVisible] = useState(false)
+  const pageRef = useRef<HTMLDivElement>(null)
+  const [isContentVisible] = useState(true)
+  const [activeSection, setActiveSection] = useState(pageNavItems[0].id)
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setIsContentVisible(true)
-    }, CONTENT_REVEAL_DELAY_MS)
+    const page = pageRef.current
+    if (!page) return
 
-    return () => window.clearTimeout(timeout)
+    let frame = 0
+
+    const updateScrollMotion = () => {
+      const rawProgress = Math.min(Math.max(window.scrollY / (window.innerHeight * 1.15), 0), 1)
+      const easedProgress = 1 - Math.pow(1 - rawProgress, 3)
+
+      page.style.setProperty('--hero-opacity', String(1 - easedProgress * 0.72))
+      page.style.setProperty('--hero-scale', String(1 - easedProgress * 0.055))
+      page.style.setProperty('--hero-y', `${easedProgress * -5.5}vh`)
+      page.style.setProperty('--hero-blur', `${easedProgress * 1.4}px`)
+      page.style.setProperty('--content-y', `${(1 - easedProgress) * 16}vh`)
+      page.style.setProperty('--content-shadow', String(0.18 + easedProgress * 0.2))
+    }
+
+    const requestUpdate = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(updateScrollMotion)
+    }
+
+    updateScrollMotion()
+    window.addEventListener('scroll', requestUpdate, { passive: true })
+    window.addEventListener('resize', requestUpdate)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', requestUpdate)
+      window.removeEventListener('resize', requestUpdate)
+    }
+  }, [])
+
+  useEffect(() => {
+    const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'))
+
+    if (!('IntersectionObserver' in window)) {
+      revealItems.forEach((item) => item.classList.add('is-visible'))
+      return
+    }
+
+    revealItems.forEach((item, index) => {
+      item.style.setProperty('--reveal-index', String(index % 4))
+    })
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+
+          entry.target.classList.add('is-visible')
+          observer.unobserve(entry.target)
+        })
+      },
+      {
+        rootMargin: '0px 0px -14% 0px',
+        threshold: 0.12,
+      },
+    )
+
+    revealItems.forEach((item) => observer.observe(item))
+
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const sectionElements = pageNavItems
+      .map((item) => document.getElementById(item.id))
+      .filter((section): section is HTMLElement => Boolean(section))
+
+    if (sectionElements.length === 0) return
+
+    const updateActiveSection = () => {
+      const anchorY = window.innerHeight * 0.42
+      const currentSection = sectionElements.reduce((current, section) => {
+        const sectionTop = section.getBoundingClientRect().top
+
+        if (sectionTop <= anchorY) return section
+
+        return current
+      }, sectionElements[0])
+
+      setActiveSection(currentSection.id)
+    }
+
+    updateActiveSection()
+    window.addEventListener('scroll', updateActiveSection, { passive: true })
+    window.addEventListener('resize', updateActiveSection)
+
+    return () => {
+      window.removeEventListener('scroll', updateActiveSection)
+      window.removeEventListener('resize', updateActiveSection)
+    }
   }, [])
 
   const contentRevealClass = isContentVisible
@@ -242,16 +211,16 @@ function App() {
     : 'pointer-events-none translate-y-8 opacity-0'
 
   return (
-    <main className="min-h-screen overflow-hidden bg-white text-[#171411]">
-      <div className="site-frame">
+    <main className="min-h-screen bg-white text-[#171411]">
+      <PageRail activeSection={activeSection} />
+      <div className="site-frame" ref={pageRef}>
         <Navbar isVisible={isContentVisible} />
-        <section className="relative min-h-screen overflow-hidden bg-[#dfe6dc]">
-          <BlueHand hasLanded={isContentVisible} />
+        <section id="home" className="pixel-hero min-h-screen overflow-hidden bg-[var(--hero-bg)]">
 
           <div
-            className={`pointer-events-none relative z-10 grid min-h-screen content-end gap-12 px-5 pb-10 pt-32 transition-all duration-900 ease-[cubic-bezier(0.19,1,0.22,1)] sm:px-8 sm:pb-12 lg:grid-cols-[0.48fr_0.52fr] lg:px-16 ${contentRevealClass}`}
+            className={`hero-content pointer-events-none relative z-10 grid min-h-screen place-items-center px-5 py-28 text-center transition-all duration-900 ease-[cubic-bezier(0.19,1,0.22,1)] sm:px-8 lg:px-16 ${contentRevealClass}`}
           >
-            <div className="pointer-events-auto max-w-2xl pb-2 lg:pb-24">
+            <div className="pointer-events-auto mx-auto max-w-2xl">
               {/* <div className="mb-8 flex items-center gap-3">
                 <div className="flex -space-x-2">
                   <span className="grid size-8 place-items-center rounded-full border border-white bg-[#171411] text-[0.65rem] font-bold text-white">
@@ -267,9 +236,21 @@ function App() {
                 <p className="text-sm font-semibold text-[#5e574d]">42+ teams trust the work</p>
               </div> */}
 
-              <h1 className="text-6xl font-semibold my-26 leading-[0.9] tracking-normal text-[#171411] sm:text-7xl lg:text-[7.4rem]">
-                I create <span className="font-serif italic font-normal text-[#3f7df4]">what</span> stands out
+              <h1 className="hero-intro text-[#ebe7d5]">
+                Hey, I am{' '}
+                <span
+                  id="hero-name"
+                  className="hero-name relative inline-block"
+                >
+                  <PointerCat />
+                  <span className="hero-name-text">Ansh Jagwal</span>
+                </span>
+                .
               </h1>
+
+              <p className="hero-subtitle mx-auto mt-7">
+                {HERO_SUBTITLE}
+              </p>
 
               {/* <p className="mt-7 max-w-lg text-lg leading-8 text-[#5e574d]">
                 Independent digital designer and frontend developer building portfolio, product, and brand sites that
@@ -294,16 +275,16 @@ function App() {
         </section>
 
         <div
-          className={`transition-all delay-150 duration-900 ease-[cubic-bezier(0.19,1,0.22,1)] ${contentRevealClass}`}
+          className={`overlap-content transition-all delay-150 duration-900 ease-[cubic-bezier(0.19,1,0.22,1)] ${contentRevealClass}`}
         >
-          <section id="about" className="border-y border-[#d7cfc1] bg-[#f6f1e8]">
+          <section id="about" className="reveal-section border-y border-[#d7cfc1] bg-[#f6f1e8]" data-reveal>
             <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.42fr_1fr] lg:px-10">
-              <div className="min-h-48 border-b border-[#d7cfc1] pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-12">
+              <div className="reveal-item min-h-48 border-b border-[#d7cfc1] pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-12" data-reveal>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#3f7df4]">About me</p>
                 <div className="mt-8 h-px w-full bg-[#d7cfc1]" />
               </div>
 
-              <div className="lg:pl-12">
+              <div className="reveal-item lg:pl-12" data-reveal>
                 <h2 className="max-w-3xl text-5xl font-semibold leading-tight">
                   Designing interfaces with taste, motion, and a builder's eye.
                 </h2>
@@ -318,9 +299,9 @@ function App() {
             </div>
           </section>
 
-          <section id="work" className="border-y border-[#d7cfc1] bg-[#fffaf1]">
+          <section id="work" className="reveal-section border-y border-[#d7cfc1] bg-[#fffaf1]" data-reveal>
             <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.35fr_1fr] lg:px-10">
-              <div>
+              <div className="reveal-item" data-reveal>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#3f7df4]">Selected work</p>
                 <h2 className="mt-4 text-4xl font-semibold leading-tight">Recent outcomes</h2>
               </div>
@@ -328,7 +309,8 @@ function App() {
               <div className="divide-y divide-[#d7cfc1] border-t border-[#d7cfc1]">
                 {projects.map((project) => (
                   <article
-                    className="grid gap-5 py-8 transition hover:bg-[#f6f1e8] md:grid-cols-[0.18fr_1fr_0.6fr]"
+                    className="reveal-item grid gap-5 py-8 transition hover:bg-[#f6f1e8] md:grid-cols-[0.18fr_1fr_0.6fr]"
+                    data-reveal
                     key={project.title}
                   >
                     <p className="text-sm text-[#6f675c]">{project.year}</p>
@@ -345,9 +327,10 @@ function App() {
 
           <section
             id="services"
-            className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1.1fr] lg:px-10"
+            className="reveal-section mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1.1fr] lg:px-10"
+            data-reveal
           >
-            <div>
+            <div className="reveal-item" data-reveal>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#3f7df4]">Capabilities</p>
               <h2 className="mt-4 max-w-xl text-5xl font-semibold leading-tight">
                 A calm process for websites that need to feel expensive.
@@ -355,15 +338,15 @@ function App() {
             </div>
             <div className="grid content-start gap-4 sm:grid-cols-2">
               {services.map((service) => (
-                <div className="border border-[#d7cfc1] bg-[#fffaf1] p-6" key={service}>
+                <div className="reveal-item border border-[#d7cfc1] bg-[#fffaf1] p-6" data-reveal key={service}>
                   <p className="text-xl font-semibold">{service}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="mx-auto max-w-7xl px-5 pb-20 sm:px-8 lg:px-10">
-            <div className="grid gap-10 bg-[#dce8ff] p-8 sm:p-10 lg:grid-cols-[0.8fr_1.2fr]">
+          <section className="reveal-section mx-auto max-w-7xl px-5 pb-20 sm:px-8 lg:px-10" data-reveal>
+            <div className="reveal-item grid gap-10 bg-[#dce8ff] p-8 sm:p-10 lg:grid-cols-[0.8fr_1.2fr]" data-reveal>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#315fae]">Client note</p>
               <blockquote className="text-3xl font-semibold leading-tight text-[#13264a]">
                 “Ansh translated a loose idea into a site that finally makes our offer feel as premium as the work
@@ -372,7 +355,7 @@ function App() {
             </div>
           </section>
 
-          <footer id="contact" className="bg-[#171411] text-[#f6f1e8]">
+          <footer id="contact" className="reveal-section bg-[#171411] text-[#f6f1e8]" data-reveal>
             <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto] lg:px-10">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8db7ff]">Start a project</p>

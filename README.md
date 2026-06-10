@@ -9,3 +9,7 @@ npm run dev
 npm run build
 npm run lint
 ```
+
+## Credits
+
+Some pixel assets are from Sprout Lands by Cup Nooble.
