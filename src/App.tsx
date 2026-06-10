@@ -65,8 +65,11 @@ const pageNavItems = [
 function Navbar({ isVisible }: { isVisible: boolean }) {
   return (
     <header
-      className={`pixel-navbar absolute inset-x-0 top-0 z-20 border-b border-[#171411]/10 bg-[var(--hero-bg)] transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${isVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-4 opacity-0'
-        }`}
+      className={`pixel-navbar absolute inset-x-0 top-0 z-20 border-b border-[#171411]/10 bg-[var(--hero-bg)] transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${isVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-4 opacity-0'}`}
+      style={{
+        opacity: 'var(--hero-opacity)',
+        filter: 'blur(var(--hero-blur))',
+      }}
     >
       <div className="pixel-navbar-inner mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-16">
         <a href="#" className="pixel-brand text-sm font-bold uppercase tracking-tight text-[#171411]">
@@ -84,8 +87,18 @@ function Navbar({ isVisible }: { isVisible: boolean }) {
 }
 
 function PageRail({ activeSection }: { activeSection: string }) {
+  const activeIndex = pageNavItems.findIndex((item) => item.id === activeSection)
+  const railItemHeight = 3.15
+  const railGap = 0.26
+  const highlightOffset = activeIndex >= 0 ? activeIndex * (railItemHeight + railGap) : 0
+
   return (
-    <nav className="page-rail" aria-label="Current page section">
+    <nav
+      className="page-rail"
+      aria-label="Current page section"
+      style={{ '--rail-offset': `${highlightOffset}rem` } as React.CSSProperties}
+    >
+      <span className="page-rail-highlight" aria-hidden="true" />
       {pageNavItems.map((item) => {
         const isActive = activeSection === item.id
 
@@ -214,8 +227,8 @@ function App() {
     <main className="min-h-screen bg-white text-[#171411]">
       <PageRail activeSection={activeSection} />
       <div className="site-frame" ref={pageRef}>
-        <Navbar isVisible={isContentVisible} />
         <section id="home" className="pixel-hero min-h-screen overflow-hidden bg-[var(--hero-bg)]">
+          <Navbar isVisible={isContentVisible} />
 
           <div
             className={`hero-content pointer-events-none relative z-10 grid min-h-screen place-items-center px-5 py-28 text-center transition-all duration-900 ease-[cubic-bezier(0.19,1,0.22,1)] sm:px-8 lg:px-16 ${contentRevealClass}`}
