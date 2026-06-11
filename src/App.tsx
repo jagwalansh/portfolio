@@ -93,9 +93,16 @@ function Navbar({ isVisible }: { isVisible: boolean }) {
   )
 }
 
-function PageRail({ activeSection }: { activeSection: string }) {
+function PageRail({ activeSection, scrollProgress }: { activeSection: string; scrollProgress: number }) {
   return (
     <nav className="page-rail" aria-label="Current page section">
+      <div className="absolute bottom-1 left-1 top-1 z-0 w-1.5 rounded-full bg-white/8">
+        <div
+          className="absolute left-0 right-0 top-0 rounded-full bg-[#2f72ff] transition-[height] duration-200 ease-out"
+          style={{ height: `${scrollProgress * 100}%` }}
+        />
+      </div>
+
       {pageNavItems.map((item) => {
         const isActive = activeSection === item.id
 
@@ -119,8 +126,8 @@ function PageRail({ activeSection }: { activeSection: string }) {
 
 function App() {
   const pageRef = useRef<HTMLDivElement>(null)
-  const [isContentVisible] = useState(true)
   const [activeSection, setActiveSection] = useState(pageNavItems[0].id)
+  const [scrollProgress, setScrollProgress] = useState(0)
 
   useEffect(() => {
     const page = pageRef.current
@@ -129,15 +136,16 @@ function App() {
     let frame = 0
 
     const updateScrollMotion = () => {
-      const rawProgress = Math.min(Math.max(window.scrollY / (window.innerHeight * 1.15), 0), 1)
+      const rawProgress = Math.min(Math.max(window.scrollY / (window.innerHeight * 0.95), 0), 1)
       const easedProgress = 1 - Math.pow(1 - rawProgress, 3)
 
-      page.style.setProperty('--hero-opacity', String(1 - easedProgress * 0.72))
-      page.style.setProperty('--hero-scale', String(1 - easedProgress * 0.055))
-      page.style.setProperty('--hero-y', `${easedProgress * -5.5}vh`)
-      page.style.setProperty('--hero-blur', `${easedProgress * 1.4}px`)
-      page.style.setProperty('--content-y', `${(1 - easedProgress) * 16}vh`)
-      page.style.setProperty('--content-shadow', String(0.18 + easedProgress * 0.2))
+      page.style.setProperty('--hero-opacity', String(1 - easedProgress * 0.86))
+      page.style.setProperty('--hero-scale', String(1 - easedProgress * 0.07))
+      page.style.setProperty('--hero-y', `${easedProgress * -6.5}vh`)
+      page.style.setProperty('--hero-blur', `${easedProgress * 5}px`)
+      page.style.setProperty('--hero-wash', String(easedProgress * 0.76))
+      page.style.setProperty('--content-y', `${(1 - easedProgress) * 18}vh`)
+      page.style.setProperty('--content-shadow', String(0.18 + easedProgress * 0.28))
     }
 
     const requestUpdate = () => {
@@ -153,6 +161,25 @@ function App() {
       window.cancelAnimationFrame(frame)
       window.removeEventListener('scroll', requestUpdate)
       window.removeEventListener('resize', requestUpdate)
+    }
+  }, [])
+
+  useEffect(() => {
+    const updateScrollProgress = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || 0
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+      const progress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0
+
+      setScrollProgress(progress)
+    }
+
+    updateScrollProgress()
+    window.addEventListener('scroll', updateScrollProgress, { passive: true })
+    window.addEventListener('resize', updateScrollProgress)
+
+    return () => {
+      window.removeEventListener('scroll', updateScrollProgress)
+      window.removeEventListener('resize', updateScrollProgress)
     }
   }, [])
 
@@ -218,20 +245,17 @@ function App() {
     }
   }, [])
 
-  const contentRevealClass = isContentVisible
-    ? 'translate-y-0 opacity-100'
-    : 'pointer-events-none translate-y-8 opacity-0'
-
   return (
     <main className="min-h-screen bg-white text-[#171411]">
       <CustomCursor />
-      <PageRail activeSection={activeSection} />
+
+      <PageRail activeSection={activeSection} scrollProgress={scrollProgress} />
       <div className="site-frame" ref={pageRef}>
         <section id="home" className="pixel-hero min-h-screen overflow-hidden bg-(--hero-bg)">
-          <Navbar isVisible={isContentVisible} />
+          <Navbar isVisible={true} />
 
           <div
-            className={`hero-content pointer-events-none relative z-10 grid min-h-screen place-items-center px-5 py-28 text-center transition-all duration-900 ease-[cubic-bezier(0.19,1,0.22,1)] sm:px-8 lg:px-16 ${contentRevealClass}`}
+            className="hero-content pointer-events-none relative z-10 grid min-h-screen place-items-center px-5 py-28 text-center sm:px-8 lg:px-16"
           >
             <div className="pointer-events-auto mx-auto max-w-2xl">
               {/* <div className="mb-8 flex items-center gap-3">
@@ -289,9 +313,7 @@ function App() {
           </div>
         </section>
 
-        <div
-          className={`overlap-content transition-all delay-150 duration-900 ease-[cubic-bezier(0.19,1,0.22,1)] ${contentRevealClass}`}
-        >
+        <div className="overlap-content">
           <section id="about" className="reveal-section border-y border-[#d7cfc1] bg-[#f6f1e8]" data-reveal>
             <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.42fr_1fr] lg:px-10">
               <div className="reveal-item min-h-48 border-b border-[#d7cfc1] pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-12" data-reveal>
