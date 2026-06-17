@@ -408,6 +408,81 @@ a {
   will-change: opacity, transform, filter;
 }
 
+.scroll-scene {
+  --scroll-progress: 0;
+  --stage-opacity: 0.22;
+  --stage-scale: 0.955;
+  --copy-opacity: 0.28;
+  --copy-blur: 5px;
+  --copy-y: 72px;
+  --panel-opacity: 0.12;
+  --panel-blur: 8px;
+  --panel-x: 96px;
+  --panel-y: 52px;
+  --about-heading-y: 36px;
+  --about-body-y: 52px;
+  --about-note-y: 68px;
+  position: relative;
+  min-height: 138svh;
+}
+
+.scroll-scene-work {
+  min-height: 158svh;
+}
+
+.scroll-scene-services {
+  min-height: 152svh;
+}
+
+.scroll-stage {
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
+  align-content: center;
+  overflow: hidden;
+  opacity: var(--stage-opacity);
+  transform: scale(var(--stage-scale));
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.scroll-copy {
+  opacity: var(--copy-opacity);
+  filter: blur(var(--copy-blur));
+  transform: translate3d(0, var(--copy-y), 0);
+  will-change: opacity, filter, transform;
+}
+
+.scroll-panel {
+  opacity: var(--panel-opacity);
+  filter: blur(var(--panel-blur));
+  transform: translate3d(var(--panel-x), var(--panel-y), 0);
+  will-change: opacity, filter, transform;
+}
+
+.scroll-item {
+  --item-opacity: 0.18;
+  --item-blur: 6px;
+  --item-x: 70px;
+  --item-y: 26px;
+  opacity: var(--item-opacity);
+  filter: blur(var(--item-blur));
+  transform: translate3d(var(--item-x), var(--item-y), 0);
+  will-change: opacity, filter, transform;
+}
+
+.scroll-scene-about .scroll-panel > * {
+  transform: translateY(var(--about-heading-y));
+}
+
+.scroll-scene-about .scroll-panel > :nth-child(2) {
+  transform: translateY(var(--about-body-y));
+}
+
+.scroll-scene-about .scroll-panel > :nth-child(3) {
+  transform: translateY(var(--about-note-y));
+}
+
 @keyframes hero-text-load {
   from {
     opacity: 0;
@@ -486,6 +561,26 @@ a {
   }
 
   .overlap-content {
+    transform: none;
+  }
+
+  .scroll-scene {
+    min-height: auto;
+  }
+
+  .scroll-stage {
+    position: relative;
+    min-height: auto;
+    opacity: 1;
+    transform: none;
+  }
+
+  .scroll-copy,
+  .scroll-panel,
+  .scroll-item,
+  .scroll-scene-about .scroll-panel > * {
+    opacity: 1;
+    filter: none;
     transform: none;
   }
 }
@@ -636,6 +731,28 @@ footer a {
 
   .hand-stage {
     inset: 0;
+  }
+
+  .scroll-scene,
+  .scroll-scene-work,
+  .scroll-scene-services {
+    min-height: auto;
+  }
+
+  .scroll-stage {
+    position: relative;
+    min-height: auto;
+    opacity: 1;
+    transform: none;
+  }
+
+  .scroll-copy,
+  .scroll-panel,
+  .scroll-item,
+  .scroll-scene-about .scroll-panel > * {
+    opacity: 1;
+    filter: none;
+    transform: none;
   }
 }
 

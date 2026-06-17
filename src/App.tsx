@@ -184,6 +184,67 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const scrollScenes = Array.from(document.querySelectorAll<HTMLElement>('[data-scroll-scene]'))
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+    if (scrollScenes.length === 0 || prefersReducedMotion.matches) return
+
+    let frame = 0
+
+    const clamp = (value: number) => Math.min(Math.max(value, 0), 1)
+
+    const updateScrollScenes = () => {
+      const viewportHeight = window.innerHeight
+
+      scrollScenes.forEach((scene) => {
+        const rect = scene.getBoundingClientRect()
+        const travel = Math.max(rect.height - viewportHeight, viewportHeight * 0.35)
+        const progress = clamp(-rect.top / travel)
+        const enter = clamp((viewportHeight - rect.top) / (viewportHeight * 0.72))
+        const exit = clamp((progress - 0.84) / 0.16)
+
+        scene.style.setProperty('--scroll-progress', progress.toFixed(4))
+        scene.style.setProperty('--stage-opacity', String(0.22 + enter * 0.78 - exit * 0.18))
+        scene.style.setProperty('--stage-scale', String(0.955 + enter * 0.045 - exit * 0.015))
+        scene.style.setProperty('--copy-opacity', String(0.28 + enter * 0.72))
+        scene.style.setProperty('--copy-blur', `${(1 - enter) * 5}px`)
+        scene.style.setProperty('--copy-y', `${(1 - enter) * 72 - progress * 28}px`)
+        scene.style.setProperty('--panel-opacity', String(0.12 + enter * 0.88))
+        scene.style.setProperty('--panel-blur', `${(1 - enter) * 8}px`)
+        scene.style.setProperty('--panel-x', `${(1 - enter) * viewportHeight * 0.12}px`)
+        scene.style.setProperty('--panel-y', `${(1 - enter) * 52}px`)
+        scene.style.setProperty('--about-heading-y', `${(1 - enter) * 36}px`)
+        scene.style.setProperty('--about-body-y', `${(1 - enter) * 52}px`)
+        scene.style.setProperty('--about-note-y', `${(1 - enter) * 68}px`)
+
+        scene.querySelectorAll<HTMLElement>('.scroll-item').forEach((item, index) => {
+          const itemProgress = clamp((progress - index * 0.1) * 4.8 + enter * 0.6)
+
+          item.style.setProperty('--item-opacity', String(0.18 + itemProgress * 0.82))
+          item.style.setProperty('--item-blur', `${(1 - itemProgress) * 6}px`)
+          item.style.setProperty('--item-x', `${(1 - itemProgress) * 70}px`)
+          item.style.setProperty('--item-y', `${(1 - itemProgress) * 26}px`)
+        })
+      })
+    }
+
+    const requestUpdate = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(updateScrollScenes)
+    }
+
+    updateScrollScenes()
+    window.addEventListener('scroll', requestUpdate, { passive: true })
+    window.addEventListener('resize', requestUpdate)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', requestUpdate)
+      window.removeEventListener('resize', requestUpdate)
+    }
+  }, [])
+
+  useEffect(() => {
     const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'))
 
     if (!('IntersectionObserver' in window)) {
@@ -314,14 +375,14 @@ function App() {
         </section>
 
         <div className="overlap-content">
-          <section id="about" className="reveal-section border-y border-[#d7cfc1] bg-[#f6f1e8]" data-reveal>
-            <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.42fr_1fr] lg:px-10">
-              <div className="reveal-item min-h-48 border-b border-[#d7cfc1] pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-12" data-reveal>
+          <section id="about" className="scroll-scene scroll-scene-about border-y border-[#d7cfc1] bg-[#f6f1e8]" data-scroll-scene>
+            <div className="scroll-stage mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.42fr_1fr] lg:px-10">
+              <div className="scroll-copy min-h-48 border-b border-[#d7cfc1] pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-12">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#3f7df4]">About me</p>
                 <div className="mt-8 h-px w-full bg-[#d7cfc1]" />
               </div>
 
-              <div className="reveal-item lg:pl-12" data-reveal>
+              <div className="scroll-panel lg:pl-12">
                 <h2 className="max-w-3xl text-5xl font-semibold leading-tight">
                   Designing interfaces with taste, motion, and a builder's eye.
                 </h2>
@@ -336,18 +397,17 @@ function App() {
             </div>
           </section>
 
-          <section id="work" className="reveal-section border-y border-[#d7cfc1] bg-[#fffaf1]" data-reveal>
-            <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.35fr_1fr] lg:px-10">
-              <div className="reveal-item" data-reveal>
+          <section id="work" className="scroll-scene scroll-scene-work border-y border-[#d7cfc1] bg-[#fffaf1]" data-scroll-scene>
+            <div className="scroll-stage mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.35fr_1fr] lg:px-10">
+              <div className="scroll-copy">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#3f7df4]">Selected work</p>
                 <h2 className="mt-4 text-4xl font-semibold leading-tight">Recent outcomes</h2>
               </div>
 
-              <div className="divide-y divide-[#d7cfc1] border-t border-[#d7cfc1]">
+              <div className="scroll-panel divide-y divide-[#d7cfc1] border-t border-[#d7cfc1]">
                 {projects.map((project) => (
                   <article
-                    className="reveal-item grid gap-5 py-8 transition hover:bg-[#f6f1e8] md:grid-cols-[0.18fr_1fr_0.6fr]"
-                    data-reveal
+                    className="scroll-item grid gap-5 py-8 transition hover:bg-[#f6f1e8] md:grid-cols-[0.18fr_1fr_0.6fr]"
                     data-cursor="View"
                     key={project.title}
                   >
@@ -365,21 +425,27 @@ function App() {
 
           <section
             id="services"
-            className="reveal-section mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1.1fr] lg:px-10"
-            data-reveal
+            className="scroll-scene scroll-scene-services"
+            data-scroll-scene
           >
-            <div className="reveal-item" data-reveal>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#3f7df4]">Capabilities</p>
-              <h2 className="mt-4 max-w-xl text-5xl font-semibold leading-tight">
-                A calm process for websites that need to feel expensive.
-              </h2>
-            </div>
-            <div className="grid content-start gap-4 sm:grid-cols-2">
-              {services.map((service) => (
-                <div className="reveal-item border border-[#d7cfc1] bg-[#fffaf1] p-6" data-reveal data-cursor="Service" key={service}>
-                  <p className="text-xl font-semibold">{service}</p>
-                </div>
-              ))}
+            <div className="scroll-stage mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1.1fr] lg:px-10">
+              <div className="scroll-copy">
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#3f7df4]">Capabilities</p>
+                <h2 className="mt-4 max-w-xl text-5xl font-semibold leading-tight">
+                  A calm process for websites that need to feel expensive.
+                </h2>
+              </div>
+              <div className="scroll-panel grid content-start gap-4 sm:grid-cols-2">
+                {services.map((service) => (
+                  <div
+                    className="scroll-item border border-[#d7cfc1] bg-[#fffaf1] p-6"
+                    data-cursor="Service"
+                    key={service}
+                  >
+                    <p className="text-xl font-semibold">{service}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
