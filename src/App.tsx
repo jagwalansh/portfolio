@@ -6,21 +6,10 @@ import { Magnetic } from './components/Magnetic'
 const projects = [
   {
     year: '2026',
-    title: 'Northstar Studio',
-    type: 'Brand site + booking flow',
-    result: '+38% consultation requests',
-  },
-  {
-    year: '2025',
-    title: 'Ledgerly',
-    type: 'SaaS dashboard redesign',
-    result: '2.1x faster onboarding',
-  },
-  {
-    year: '2025',
-    title: 'Maison Vale',
-    type: 'Editorial commerce experience',
-    result: '+24% product discovery',
+    title: 'KeyVerse.me',
+    type: 'Rhythm typing game — type lyrics in sync with music',
+    result: 'Live product',
+    href: 'https://keyverse.me',
   },
 ]
 
@@ -128,6 +117,19 @@ function App() {
   const pageRef = useRef<HTMLDivElement>(null)
   const [activeSection, setActiveSection] = useState(pageNavItems[0].id)
   const [scrollProgress, setScrollProgress] = useState(0)
+
+  // Hover states for list item website previews
+  const [hoveredProject, setHoveredProject] = useState<string | null>(null)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const [shouldLoadIframeGlobal, setShouldLoadIframeGlobal] = useState(false)
+
+  useEffect(() => {
+    // Lazy-load the global preview iframe 2 seconds after the page mounts to optimize page load
+    const timer = setTimeout(() => {
+      setShouldLoadIframeGlobal(true)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     const page = pageRef.current
@@ -405,20 +407,50 @@ function App() {
               </div>
 
               <div className="scroll-panel divide-y divide-[#d7cfc1] border-t border-[#d7cfc1]">
-                {projects.map((project) => (
-                  <article
-                    className="scroll-item grid gap-5 py-8 transition hover:bg-[#f6f1e8] md:grid-cols-[0.18fr_1fr_0.6fr]"
-                    data-cursor="View"
-                    key={project.title}
-                  >
-                    <p className="text-sm text-[#6f675c]">{project.year}</p>
-                    <div>
-                      <h3 className="text-3xl font-semibold">{project.title}</h3>
-                      <p className="mt-2 text-[#6f675c]">{project.type}</p>
-                    </div>
-                    <p className="text-lg font-medium text-[#3f7df4] md:text-right">{project.result}</p>
-                  </article>
-                ))}
+                {projects.map((project) => {
+                  const Tag = 'href' in project && project.href ? 'a' : 'article'
+                  const linkProps = 'href' in project && project.href
+                    ? { href: project.href, target: '_blank', rel: 'noopener noreferrer' }
+                    : {}
+
+                  return (
+                    <Tag
+                      className={`scroll-item grid gap-5 py-8 transition hover:bg-[#f6f1e8] md:grid-cols-[0.18fr_1fr_0.6fr] ${
+                        'href' in project && project.href ? 'keyverse-work-link' : ''
+                      }`}
+                      data-cursor={'href' in project && project.href ? 'Visit' : 'View'}
+                      key={project.title}
+                      {...linkProps}
+                      onMouseEnter={() => {
+                        if ('href' in project && project.href) {
+                          setHoveredProject(project.title)
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredProject(null)}
+                      onMouseMove={(e) => {
+                        if ('href' in project && project.href) {
+                          setMousePos({ x: e.clientX, y: e.clientY })
+                        }
+                      }}
+                    >
+                      <p className="text-sm text-[#6f675c]">{project.year}</p>
+                      <div>
+                        <h3 className="text-3xl font-semibold">
+                          {project.title}
+                          {'href' in project && project.href && (
+                            <span className="ml-2 inline-block text-sm text-[#3f7df4] opacity-0 transition-opacity group-hover:opacity-100">↗</span>
+                          )}
+                        </h3>
+                        <p className="mt-2 text-[#6f675c]">{project.type}</p>
+                      </div>
+                      <p className={`text-lg font-medium md:text-right ${
+                        'href' in project && project.href ? 'text-[#4ade80]' : 'text-[#3f7df4]'
+                      }`}>
+                        {project.result}
+                      </p>
+                    </Tag>
+                  )
+                })}
               </div>
             </div>
           </section>
@@ -489,6 +521,55 @@ function App() {
               </div>
             </div>
           </footer>
+        </div>
+      </div>
+
+      {/* Floating Website Preview Card (kept permanently mounted to prevent load delay) */}
+      <div
+        className="pointer-events-none fixed z-[99] hidden flex-col overflow-hidden bg-[#0f0e1a] transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] md:flex"
+        style={{
+          left: `${Math.min(mousePos.x + 24, window.innerWidth - 544)}px`,
+          top: `${Math.min(mousePos.y + 24, window.innerHeight - 364)}px`,
+          width: '520px',
+          height: '340px',
+          opacity: hoveredProject ? 1 : 0,
+          transform: hoveredProject ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(10px)',
+          visibility: hoveredProject ? 'visible' : 'hidden',
+          border: '3px solid #171411',
+          boxShadow: '8px 8px 0 rgba(23, 20, 17, 0.15)',
+        }}
+      >
+        {/* Mock browser bar */}
+        <div className="flex items-center justify-between border-b border-[#fffaf1]/10 bg-[#171425] px-3 py-1.5">
+          <div className="flex gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#ff5f56]" />
+            <span className="h-2 w-2 rounded-full bg-[#ffbd2e]" />
+            <span className="h-2 w-2 rounded-full bg-[#27c93f]" />
+          </div>
+          <span className="text-[9px] font-semibold tracking-wider text-[#fffaf1]/40 uppercase">
+            {hoveredProject ? hoveredProject.toLowerCase() : ''}
+          </span>
+          <div className="w-8" />
+        </div>
+
+        {/* Live Website Iframe viewport */}
+        <div className="relative flex-1 bg-[#0f0e1a] overflow-hidden">
+          {shouldLoadIframeGlobal && (
+            <iframe
+              src="https://keyverse.me"
+              title="Work Live Preview"
+              className="absolute inset-0 border-0"
+              style={{
+                width: '166.67%',
+                height: '166.67%',
+                transform: 'scale(0.6)',
+                transformOrigin: 'top left',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+          {/* Aesthetic overlay grid */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(63,125,244,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(63,125,244,0.04)_1px,transparent_1px)] bg-[size:14px_14px] pointer-events-none" />
         </div>
       </div>
     </main>
